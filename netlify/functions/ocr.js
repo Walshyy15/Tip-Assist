@@ -30,41 +30,29 @@ async function pollOperationResult(operationUrl, apiKey) {
   throw new Error('OCR polling timeout - analysis took too long');
 }
 
-function extractPartnersFromTables(tables) {
-  if (!tables || tables.length === 0) {
-    return [];
+function scoreTable(table) {
+  if (!table || !table.cells || table.cells.length === 0) {
+    return 0;
   }
 
-  let bestTable = null;
-  let bestScore = 0;
+  const allText = table.cells.map(c => (c.content || '').toLowerCase()).join(' ');
 
-  for (const table of tables) {
-    if (!table.cells || table.cells.length === 0) continue;
+  let score = 0;
+  if (allText.includes('partner')) score += 3;
+  if (allText.includes('name')) score += 2;
+  if (allText.includes('number')) score += 2;
+  if (allText.includes('hour') || allText.includes('tippable')) score += 3;
 
-    const allText = table.cells.map(c => (c.content || '').toLowerCase()).join(' ');
-
-    let score = 0;
-    if (allText.includes('partner')) score += 3;
-    if (allText.includes('name')) score += 2;
-    if (allText.includes('number')) score += 2;
-    if (allText.includes('hour') || allText.includes('tippable')) score += 3;
-
-    if (table.rowCount >= 3 && table.columnCount >= 2) {
-      score += 1;
-    }
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestTable = table;
-    }
+  if (table.rowCount >= 3 && table.columnCount >= 2) {
+    score += 1;
   }
 
-  if (!bestTable || bestScore === 0) {
-    return [];
-  }
+  return score;
+}
 
+function extractHeaders(table) {
   const headers = {};
-  const headerRow = bestTable.cells.filter(cell => cell.rowIndex === 0);
+  const headerRow = table.cells.filter(cell => cell.rowIndex === 0);
 
   headerRow.forEach(cell => {
     const text = (cell.content || '').toLowerCase().trim();
@@ -80,7 +68,7 @@ function extractPartnersFromTables(tables) {
   });
 
   if (Object.keys(headers).length === 0) {
-    const firstRowCells = bestTable.cells.filter(c => c.rowIndex === 0);
+    const firstRowCells = headerRow;
     if (firstRowCells.length >= 2) {
       headers.name = 0;
       headers.number = 1;
@@ -90,64 +78,93 @@ function extractPartnersFromTables(tables) {
     }
   }
 
-  const dataCells = bestTable.cells.filter(cell => cell.rowIndex > 0);
+  return headers;
+}
 
-  const rowsMap = {};
-  dataCells.forEach(cell => {
-    const rowIdx = cell.rowIndex;
-    if (!rowsMap[rowIdx]) {
-      rowsMap[rowIdx] = {};
-    }
-    rowsMap[rowIdx][cell.columnIndex] = cell.content || '';
-  });
+function extractPartnersFromTables(tables) {
+  if (!tables || tables.length === 0) {
+    return [];
+  }
+
+  const scoredTables = tables
+    .map(table => ({ table, score: scoreTable(table) }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  if (scoredTables.length === 0) {
+    return [];
+  }
 
   const partners = [];
-  Object.entries(rowsMap).forEach(([rowIdx, row]) => {
-    let partnerName = '';
-    let partnerNumber = '';
-    let hoursText = '';
+  const seenKeys = new Set();
 
-    if (headers.name !== undefined) {
-      partnerName = row[headers.name] || '';
-    }
-    if (headers.number !== undefined) {
-      partnerNumber = row[headers.number] || '';
-    }
-    if (headers.hours !== undefined) {
-      hoursText = row[headers.hours] || '';
-    }
+  scoredTables.forEach(({ table }) => {
+    const headers = extractHeaders(table);
 
-    if (headers.hours === undefined) {
-      const rowValues = Object.values(row);
-      for (let i = rowValues.length - 1; i >= 0; i--) {
-        const val = rowValues[i];
-        const numericVal = parseFloat(val.replace(/[^\d.-]/g, ''));
-        if (!isNaN(numericVal) && numericVal > 0) {
-          hoursText = val;
-          break;
+    const dataCells = table.cells.filter(cell => cell.rowIndex > 0);
+    const rowsMap = {};
+
+    dataCells.forEach(cell => {
+      const rowIdx = cell.rowIndex;
+      if (!rowsMap[rowIdx]) {
+        rowsMap[rowIdx] = {};
+      }
+      rowsMap[rowIdx][cell.columnIndex] = cell.content || '';
+    });
+
+    Object.entries(rowsMap).forEach(([, row]) => {
+      let partnerName = '';
+      let partnerNumber = '';
+      let hoursText = '';
+
+      if (headers.name !== undefined) {
+        partnerName = row[headers.name] || '';
+      }
+      if (headers.number !== undefined) {
+        partnerNumber = row[headers.number] || '';
+      }
+      if (headers.hours !== undefined) {
+        hoursText = row[headers.hours] || '';
+      }
+
+      if (headers.hours === undefined) {
+        const rowValues = Object.values(row);
+        for (let i = rowValues.length - 1; i >= 0; i--) {
+          const val = rowValues[i];
+          const numericVal = parseFloat(val.replace(/[^\d.-]/g, ''));
+          if (!isNaN(numericVal) && numericVal > 0) {
+            hoursText = val;
+            break;
+          }
         }
       }
-    }
 
-    if (!partnerName && !partnerNumber) {
-      return;
-    }
+      if (!partnerName && !partnerNumber) {
+        return;
+      }
 
-    const cleanedHoursText = hoursText.replace(/[^\d.-]/g, '');
-    let tippableHours = parseFloat(cleanedHoursText);
+      const cleanedHoursText = hoursText.replace(/[^\d.-]/g, '');
+      let tippableHours = parseFloat(cleanedHoursText);
 
-    if (isNaN(tippableHours) || tippableHours < 0) {
-      tippableHours = 0;
-    }
+      if (isNaN(tippableHours) || tippableHours < 0) {
+        tippableHours = 0;
+      }
 
-    partners.push({
-      partnerName: partnerName.trim(),
-      partnerNumber: partnerNumber.trim(),
-      tippableHours: tippableHours
+      const key = `${partnerName.trim()}|${partnerNumber.trim()}|${tippableHours}`;
+      if (seenKeys.has(key)) {
+        return;
+      }
+
+      seenKeys.add(key);
+      partners.push({
+        partnerName: partnerName.trim(),
+        partnerNumber: partnerNumber.trim(),
+        tippableHours: tippableHours
+      });
     });
   });
 
-  return partners.filter(p => p.partnerName || p.partnerNumber);
+  return partners;
 }
 
 exports.handler = async (event) => {
