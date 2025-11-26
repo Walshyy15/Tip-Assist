@@ -3,14 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Barista Tips - Starbucks Tip Distribution</title>
+  <title>Tip Assist - Starbucks Tip Distribution</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header>
     <div class="container">
-      <h1>Barista Tips</h1>
-      <p class="subtitle">Starbucks Tip Distribution Assistant</p>
+      <h1>Tip Assist</h1>
     </div>
   </header>
 
@@ -101,43 +100,50 @@
         <button id="calculateBtn" class="btn btn-primary">Calculate Tips</button>
       </div>
 
-      <div id="resultsSection" class="card" style="display: none;">
-        <h2>4. Tip Distribution Results</h2>
+      <div id="resultsSection" style="display: none;">
+        <div class="card summary-section">
+          <h2 class="section-title">Distribution Summary</h2>
 
-        <div class="summary-cards">
-          <div class="summary-card">
-            <div class="summary-label">Total Tippable Hours</div>
-            <div class="summary-value" id="summaryTotalHours">0.0</div>
+          <div class="summary-grid">
+            <div class="summary-item">
+              <div class="summary-label">Total Hours</div>
+              <div class="summary-value" id="summaryTotalHours">0.0</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Hourly Rate</div>
+              <div class="summary-value" id="summaryHourlyRate">$0.00</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Total Distributed</div>
+              <div class="summary-value total-distributed" id="summaryDistributed">$0.00</div>
+            </div>
           </div>
-          <div class="summary-card">
-            <div class="summary-label">Total Tips</div>
-            <div class="summary-value" id="summaryTotalTips">$0.00</div>
+        </div>
+
+        <div class="card calculation-section">
+          <h2 class="section-title">Calculation Details</h2>
+
+          <div class="calculation-formula">
+            <span class="formula-label">Formula</span>
+            <div class="formula-display">
+              <span>Total Tips: <span class="highlight-amount" id="formulaTotalTips">$0.00</span></span>
+              <span class="operator">÷</span>
+              <span>Total Hours: <span class="highlight-hours" id="formulaTotalHours">0.0</span></span>
+              <span class="operator">=</span>
+              <span class="highlight-rate" id="formulaRate">$0.00</span>
+              <span>per hour</span>
+            </div>
           </div>
-          <div class="summary-card">
-            <div class="summary-label">Distributed</div>
-            <div class="summary-value" id="summaryDistributed">$0.00</div>
+
+          <div class="bills-needed">
+            <div class="bills-label">Total Bills Needed:</div>
+            <div class="bills-display" id="billsNeeded"></div>
           </div>
         </div>
 
         <div id="warningMessage" class="warning-message" style="display: none;"></div>
 
-        <div class="table-container">
-          <table id="resultsTable">
-            <thead>
-              <tr>
-                <th>Partner Name</th>
-                <th>Hours</th>
-                <th>Tip Amount</th>
-                <th>$20s</th>
-                <th>$10s</th>
-                <th>$5s</th>
-                <th>$1s</th>
-              </tr>
-            </thead>
-            <tbody id="resultsTableBody">
-            </tbody>
-          </table>
-        </div>
+        <div id="partnerCardsContainer" class="partner-cards"></div>
 
         <div class="action-buttons">
           <button id="printBtn" class="btn btn-secondary">Print</button>
@@ -149,7 +155,7 @@
 
   <footer>
     <div class="container">
-      <p>Barista Tips - Simplifying tip distribution for Starbucks partners</p>
+      <p>Made by William Walsh<br>Starbucks Store# 69600</p>
     </div>
   </footer>
 

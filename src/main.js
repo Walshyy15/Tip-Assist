@@ -29,10 +29,14 @@ const elements = {
   onesInput: document.getElementById('onesInput'),
   calculateBtn: document.getElementById('calculateBtn'),
   resultsSection: document.getElementById('resultsSection'),
-  resultsTableBody: document.getElementById('resultsTableBody'),
+  partnerCardsContainer: document.getElementById('partnerCardsContainer'),
   summaryTotalHours: document.getElementById('summaryTotalHours'),
-  summaryTotalTips: document.getElementById('summaryTotalTips'),
+  summaryHourlyRate: document.getElementById('summaryHourlyRate'),
   summaryDistributed: document.getElementById('summaryDistributed'),
+  formulaTotalTips: document.getElementById('formulaTotalTips'),
+  formulaTotalHours: document.getElementById('formulaTotalHours'),
+  formulaRate: document.getElementById('formulaRate'),
+  billsNeeded: document.getElementById('billsNeeded'),
   warningMessage: document.getElementById('warningMessage'),
   printBtn: document.getElementById('printBtn'),
   exportCsvBtn: document.getElementById('exportCsvBtn')
@@ -301,8 +305,10 @@ function distributeDenominations() {
 }
 
 function renderResults() {
-  elements.summaryTotalHours.textContent = state.totalHours.toFixed(1);
-  elements.summaryTotalTips.textContent = `$${state.totalTips.toFixed(2)}`;
+  const hourlyRate = state.totalHours > 0 ? state.totalTips / state.totalHours : 0;
+
+  elements.summaryTotalHours.textContent = state.totalHours.toFixed(2);
+  elements.summaryHourlyRate.textContent = `$${hourlyRate.toFixed(2)}`;
 
   const distributed = state.partners.reduce((sum, p) => {
     const d = p.denomination;
@@ -310,20 +316,73 @@ function renderResults() {
   }, 0);
   elements.summaryDistributed.textContent = `$${distributed.toFixed(2)}`;
 
-  elements.resultsTableBody.innerHTML = '';
+  elements.formulaTotalTips.textContent = `$${state.totalTips.toFixed(2)}`;
+  elements.formulaTotalHours.textContent = state.totalHours.toFixed(2);
+  elements.formulaRate.textContent = `$${hourlyRate.toFixed(2)}`;
+
+  const billCounts = {
+    twenties: 0,
+    tens: 0,
+    fives: 0,
+    ones: 0
+  };
+
+  state.partners.forEach(p => {
+    billCounts.twenties += p.denomination.twenties;
+    billCounts.tens += p.denomination.tens;
+    billCounts.fives += p.denomination.fives;
+    billCounts.ones += p.denomination.ones;
+  });
+
+  elements.billsNeeded.innerHTML = '';
+  if (billCounts.twenties > 0) {
+    elements.billsNeeded.innerHTML += `<span class="bill-badge bill-20">${billCounts.twenties} × $20</span>`;
+  }
+  if (billCounts.tens > 0) {
+    elements.billsNeeded.innerHTML += `<span class="bill-badge bill-10">${billCounts.tens} × $10</span>`;
+  }
+  if (billCounts.fives > 0) {
+    elements.billsNeeded.innerHTML += `<span class="bill-badge bill-5">${billCounts.fives} × $5</span>`;
+  }
+  if (billCounts.ones > 0) {
+    elements.billsNeeded.innerHTML += `<span class="bill-badge bill-1">${billCounts.ones} × $1</span>`;
+  }
+
+  elements.partnerCardsContainer.innerHTML = '';
 
   state.partners.forEach(partner => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${escapeHtml(partner.partnerName)}</td>
-      <td>${partner.tippableHours.toFixed(1)}</td>
-      <td>$${partner.tipAmount.toFixed(2)}</td>
-      <td>${partner.denomination.twenties}</td>
-      <td>${partner.denomination.tens}</td>
-      <td>${partner.denomination.fives}</td>
-      <td>${partner.denomination.ones}</td>
+    const card = document.createElement('div');
+    card.className = 'partner-card';
+
+    const billsHtml = [];
+    if (partner.denomination.twenties > 0) {
+      billsHtml.push(`<span class="partner-bill bill-badge bill-20">${partner.denomination.twenties}×$20</span>`);
+    }
+    if (partner.denomination.tens > 0) {
+      billsHtml.push(`<span class="partner-bill bill-badge bill-10">${partner.denomination.tens}×$10</span>`);
+    }
+    if (partner.denomination.fives > 0) {
+      billsHtml.push(`<span class="partner-bill bill-badge bill-5">${partner.denomination.fives}×$5</span>`);
+    }
+    if (partner.denomination.ones > 0) {
+      billsHtml.push(`<span class="partner-bill bill-badge bill-1">${partner.denomination.ones}×$1</span>`);
+    }
+
+    card.innerHTML = `
+      <div class="partner-header">
+        <div class="partner-name">${escapeHtml(partner.partnerName)}</div>
+        <div class="partner-amount">$${partner.tipAmount.toFixed(0)}</div>
+      </div>
+      <div class="partner-hours">${partner.tippableHours.toFixed(2)} hours</div>
+      <div class="partner-calculation">
+        ${partner.tippableHours.toFixed(2)} × $${hourlyRate.toFixed(2)} = $${(partner.tippableHours * hourlyRate).toFixed(2)} → $${partner.tipAmount.toFixed(0)}
+      </div>
+      <div class="partner-bills">
+        ${billsHtml.join('')}
+      </div>
     `;
-    elements.resultsTableBody.appendChild(row);
+
+    elements.partnerCardsContainer.appendChild(card);
   });
 
   elements.resultsSection.style.display = 'block';
