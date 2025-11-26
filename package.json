@@ -1,0 +1,24 @@
+{
+  "name": "barista-tips",
+  "version": "1.0.0",
+  "description": "Starbucks tips distribution application with OCR",
+  "main": "netlify/functions/ocr.js",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'No build step required'"
+  },
+  "keywords": [
+    "starbucks",
+    "tips",
+    "ocr",
+    "netlify"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@netlify/functions": "^2.4.0"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  }
+}

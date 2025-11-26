@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barista Tips - Starbucks Tip Distribution</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>Barista Tips</h1>
+      <p class="subtitle">Starbucks Tip Distribution Assistant</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="upload-section card">
+      <h2>1. Upload Tips Report</h2>
+      <p class="instruction">Take a photo or screenshot of your Tips Distribution Report</p>
+
+      <div class="upload-area">
+        <input type="file" id="imageInput" accept="image/*" aria-label="Upload image file">
+        <label for="imageInput" class="upload-label">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span>Choose Image</span>
+        </label>
+        <div id="fileInfo" class="file-info"></div>
+      </div>
+
+      <div id="imagePreview" class="image-preview"></div>
+
+      <button id="processBtn" class="btn btn-primary" disabled>Process Report</button>
+    </section>
+
+    <section id="processingSection" class="processing-section" style="display: none;">
+      <div class="spinner"></div>
+      <p>Processing image with OCR...</p>
+    </section>
+
+    <section id="dataSection" class="data-section" style="display: none;">
+      <div class="card">
+        <h2>2. Review & Edit Partner Data</h2>
+        <p class="instruction">Verify the extracted data and make any necessary corrections</p>
+
+        <div class="table-container">
+          <table id="partnersTable">
+            <thead>
+              <tr>
+                <th>Partner Name</th>
+                <th>Partner Number</th>
+                <th>Tippable Hours</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="partnersTableBody">
+            </tbody>
+          </table>
+        </div>
+
+        <button id="addPartnerBtn" class="btn btn-secondary">+ Add Partner</button>
+      </div>
+
+      <div class="card">
+        <h2>3. Enter Tip Amount & Cash Inventory</h2>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="totalTipsInput">Total Tips (Cash)</label>
+            <div class="input-with-prefix">
+              <span class="prefix">$</span>
+              <input type="number" id="totalTipsInput" step="0.01" min="0" placeholder="0.00">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="twentiesInput">Available $20 Bills</label>
+            <input type="number" id="twentiesInput" min="0" value="0" step="1">
+          </div>
+
+          <div class="form-group">
+            <label for="tensInput">Available $10 Bills</label>
+            <input type="number" id="tensInput" min="0" value="0" step="1">
+          </div>
+
+          <div class="form-group">
+            <label for="fivesInput">Available $5 Bills</label>
+            <input type="number" id="fivesInput" min="0" value="0" step="1">
+          </div>
+
+          <div class="form-group">
+            <label for="onesInput">Available $1 Bills</label>
+            <input type="number" id="onesInput" min="0" value="0" step="1">
+          </div>
+        </div>
+
+        <button id="calculateBtn" class="btn btn-primary">Calculate Tips</button>
+      </div>
+
+      <div id="resultsSection" class="card" style="display: none;">
+        <h2>4. Tip Distribution Results</h2>
+
+        <div class="summary-cards">
+          <div class="summary-card">
+            <div class="summary-label">Total Tippable Hours</div>
+            <div class="summary-value" id="summaryTotalHours">0.0</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Total Tips</div>
+            <div class="summary-value" id="summaryTotalTips">$0.00</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Distributed</div>
+            <div class="summary-value" id="summaryDistributed">$0.00</div>
+          </div>
+        </div>
+
+        <div id="warningMessage" class="warning-message" style="display: none;"></div>
+
+        <div class="table-container">
+          <table id="resultsTable">
+            <thead>
+              <tr>
+                <th>Partner Name</th>
+                <th>Hours</th>
+                <th>Tip Amount</th>
+                <th>$20s</th>
+                <th>$10s</th>
+                <th>$5s</th>
+                <th>$1s</th>
+              </tr>
+            </thead>
+            <tbody id="resultsTableBody">
+            </tbody>
+          </table>
+        </div>
+
+        <div class="action-buttons">
+          <button id="printBtn" class="btn btn-secondary">Print</button>
+          <button id="exportCsvBtn" class="btn btn-secondary">Export CSV</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>Barista Tips - Simplifying tip distribution for Starbucks partners</p>
+    </div>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>
