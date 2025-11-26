@@ -41,16 +41,15 @@ function extractPartnersFromTables(tables) {
   for (const table of tables) {
     if (!table.cells || table.cells.length === 0) continue;
 
-    const headerCells = table.cells.filter(cell => cell.kind === 'columnHeader' || cell.rowIndex === 0);
-    const headerText = headerCells.map(c => (c.content || '').toLowerCase()).join(' ');
+    const allText = table.cells.map(c => (c.content || '').toLowerCase()).join(' ');
 
     let score = 0;
-    if (headerText.includes('partner')) score += 3;
-    if (headerText.includes('name')) score += 2;
-    if (headerText.includes('number')) score += 2;
-    if (headerText.includes('hour')) score += 3;
+    if (allText.includes('partner')) score += 3;
+    if (allText.includes('name')) score += 2;
+    if (allText.includes('number')) score += 2;
+    if (allText.includes('hour') || allText.includes('tippable')) score += 3;
 
-    if (table.rowCount >= 3 && table.columnCount >= 3) {
+    if (table.rowCount >= 3 && table.columnCount >= 2) {
       score += 1;
     }
 
@@ -65,24 +64,33 @@ function extractPartnersFromTables(tables) {
   }
 
   const headers = {};
-  const headerCells = bestTable.cells.filter(cell => cell.kind === 'columnHeader' || cell.rowIndex === 0);
+  const headerRow = bestTable.cells.filter(cell => cell.rowIndex === 0);
 
-  headerCells.forEach(cell => {
-    const text = (cell.content || '').toLowerCase();
+  headerRow.forEach(cell => {
+    const text = (cell.content || '').toLowerCase().trim();
     const colIdx = cell.columnIndex;
 
-    if (text.includes('name') && !text.includes('number')) {
+    if ((text.includes('name') || text.includes('partner')) && !text.includes('number')) {
       headers.name = colIdx;
-    } else if (text.includes('number')) {
+    } else if (text.includes('number') || text.includes('#')) {
       headers.number = colIdx;
-    } else if (text.includes('hour')) {
+    } else if (text.includes('hour') || text.includes('tippable')) {
       headers.hours = colIdx;
     }
   });
 
-  const dataCells = bestTable.cells.filter(cell =>
-    cell.kind !== 'columnHeader' && cell.rowIndex > 0
-  );
+  if (Object.keys(headers).length === 0) {
+    const firstRowCells = bestTable.cells.filter(c => c.rowIndex === 0);
+    if (firstRowCells.length >= 2) {
+      headers.name = 0;
+      headers.number = 1;
+      if (firstRowCells.length >= 3) {
+        headers.hours = firstRowCells.length - 1;
+      }
+    }
+  }
+
+  const dataCells = bestTable.cells.filter(cell => cell.rowIndex > 0);
 
   const rowsMap = {};
   dataCells.forEach(cell => {
@@ -94,16 +102,43 @@ function extractPartnersFromTables(tables) {
   });
 
   const partners = [];
-  Object.values(rowsMap).forEach(row => {
-    const partnerName = headers.name !== undefined ? row[headers.name] : '';
-    const partnerNumber = headers.number !== undefined ? row[headers.number] : '';
-    const hoursText = headers.hours !== undefined ? row[headers.hours] : '';
+  Object.entries(rowsMap).forEach(([rowIdx, row]) => {
+    let partnerName = '';
+    let partnerNumber = '';
+    let hoursText = '';
 
-    if (!partnerName && !partnerNumber && !hoursText) {
+    if (headers.name !== undefined) {
+      partnerName = row[headers.name] || '';
+    }
+    if (headers.number !== undefined) {
+      partnerNumber = row[headers.number] || '';
+    }
+    if (headers.hours !== undefined) {
+      hoursText = row[headers.hours] || '';
+    }
+
+    if (headers.hours === undefined) {
+      const rowValues = Object.values(row);
+      for (let i = rowValues.length - 1; i >= 0; i--) {
+        const val = rowValues[i];
+        const numericVal = parseFloat(val.replace(/[^\d.-]/g, ''));
+        if (!isNaN(numericVal) && numericVal > 0) {
+          hoursText = val;
+          break;
+        }
+      }
+    }
+
+    if (!partnerName && !partnerNumber) {
       return;
     }
 
-    const tippableHours = parseFloat(hoursText.replace(/[^\d.-]/g, '')) || 0;
+    const cleanedHoursText = hoursText.replace(/[^\d.-]/g, '');
+    let tippableHours = parseFloat(cleanedHoursText);
+
+    if (isNaN(tippableHours) || tippableHours < 0) {
+      tippableHours = 0;
+    }
 
     partners.push({
       partnerName: partnerName.trim(),
